@@ -36,7 +36,13 @@ import qualified Language.PureScript.Roles as R
 import Language.PureScript.PSString (PSString)
 }
 
-%expect 0
+-- The 2 shift/reduce conflicts come from the variant injector `.label`
+-- (`exprAtom : '.' label`) overlapping with record access (`exprAtom '.' …`):
+-- after an atom, `.` shifts toward record access rather than starting a new
+-- `.label` application argument. Happy resolves these by shift, which preserves
+-- all existing parses (record access still wins) and means `.label` needs parens
+-- in argument position (`f (.foo)`), like operator/accessor sections.
+%expect 2
 
 %name parseType type
 %name parseExpr expr
@@ -430,6 +436,7 @@ expr7 :: { Expr () }
 
 exprAtom :: { Expr () }
   : '_' { ExprSection () $1 }
+  | '.' label { ExprVariantInjector () $1 $2 }
   | hole { ExprHole () $1 }
   | qualIdent { ExprIdent () $1 }
   | qualProperName { ExprConstructor () (getQualifiedProperName $1) }

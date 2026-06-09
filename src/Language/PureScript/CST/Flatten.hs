@@ -135,6 +135,7 @@ flattenExpr = \case
   ExprSection _ a -> pure a
   ExprIdent _ a -> flattenQualifiedName a
   ExprConstructor _ a -> flattenQualifiedName a
+  ExprVariantInjector _ a b -> pure a <> pure (lblTok b)
   ExprBoolean _ a _ -> pure a
   ExprChar _ a _ -> pure a
   ExprString _ a _ -> pure a

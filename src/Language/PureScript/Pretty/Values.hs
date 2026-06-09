@@ -95,6 +95,7 @@ prettyPrintValue d (Literal _ l) = prettyPrintLiteralValue d l
 prettyPrintValue _ (Hole name) = text "?" <> textT name
 prettyPrintValue d expr@AnonymousArgument{} = prettyPrintValueAtom d expr
 prettyPrintValue d expr@Constructor{} = prettyPrintValueAtom d expr
+prettyPrintValue d expr@VariantInjector{} = prettyPrintValueAtom d expr
 prettyPrintValue d expr@Var{} = prettyPrintValueAtom d expr
 prettyPrintValue d expr@Op{} = prettyPrintValueAtom d expr
 prettyPrintValue d expr@BinaryNoParens{} = prettyPrintValueAtom d expr
@@ -106,6 +107,7 @@ prettyPrintValueAtom :: Int -> Expr -> Box
 prettyPrintValueAtom d (Literal _ l) = prettyPrintLiteralValue d l
 prettyPrintValueAtom _ AnonymousArgument = text "_"
 prettyPrintValueAtom _ (Constructor _ name) = text $ T.unpack $ runProperName (disqualify name)
+prettyPrintValueAtom _ (VariantInjector _ lbl) = textT ("." Monoid.<> prettyPrintObjectKey lbl)
 prettyPrintValueAtom _ (Var _ ident) = text $ T.unpack $ showIdent (disqualify ident)
 prettyPrintValueAtom d (BinaryNoParens op lhs rhs) =
   prettyPrintValue (d - 1) lhs `beforeWithSpace` printOp op `beforeWithSpace` prettyPrintValue (d - 1) rhs

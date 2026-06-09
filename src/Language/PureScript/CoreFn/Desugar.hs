@@ -133,6 +133,15 @@ moduleToCoreFn env (A.Module modSS coms mn decls (Just exps)) =
                         (Right $ exprToCoreFn ss [] Nothing v3) ]
   exprToCoreFn _ com _ (A.Constructor ss name) =
     Var (ss, com, Just $ getConstructorMeta name) $ fmap properToIdent name
+  -- A variant injector `.label` lowers to a function building the runtime
+  -- representation `{ type: "label", value: <arg> }` (matching purescript-variant's
+  -- VariantRep). The GenIdent binder is made unique by the Renamer.
+  exprToCoreFn ss com _ (A.VariantInjector _ lbl) =
+    let v = GenIdent (Just "variant") 0
+    in Abs (ss, com, Nothing) v $ Literal (ssAnn ss) $ ObjectLiteral
+         [ ("type", Literal (ssAnn ss) (StringLiteral lbl))
+         , ("value", Var (ssAnn ss) (Qualified ByNullSourcePos v))
+         ]
   exprToCoreFn ss com _ (A.Case vs alts) =
     Case (ss, com, Nothing) (fmap (exprToCoreFn ss [] Nothing) vs) (fmap (altToCoreFn ss) alts)
   exprToCoreFn ss com _ (A.TypedValue _ v ty) =

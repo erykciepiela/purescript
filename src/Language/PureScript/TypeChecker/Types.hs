@@ -447,6 +447,12 @@ infer' (Accessor prop val) = withErrorMessageHint (ErrorCheckingAccessor val pro
   rest <- freshTypeWithKind (kindRow kindType)
   typed <- tvToExpr <$> check val (srcTypeApp tyRecord (srcRCons (Label prop) field rest))
   return $ TypedValue' True (Accessor prop typed) field
+infer' (VariantInjector ss lbl) = do
+  field <- freshTypeWithKind kindType
+  rest <- freshTypeWithKind (kindRow kindType)
+  let variantTy = srcTypeApp tyVariant (srcRCons (Label lbl) field rest)
+      injTy = srcTypeApp (srcTypeApp tyFunction field) variantTy
+  return $ TypedValue' True (VariantInjector ss lbl) injTy
 infer' (Abs binder ret)
   | VarBinder ss arg <- binder = do
       ty <- freshTypeWithKind kindType
