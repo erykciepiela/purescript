@@ -248,6 +248,7 @@ typeRange = \case
   TypeInt _ a b _ -> (fromMaybe b a, b)
   TypeRow _ a -> wrappedRange a
   TypeRecord _ a -> wrappedRange a
+  TypeVariant _ a -> wrappedRange a
   TypeForall _ a _ _ b -> (a, snd $ typeRange b)
   TypeKinded _ a _ b -> (fst $ typeRange a, snd $ typeRange b)
   TypeApp _ a b -> (fst $ typeRange a, snd $ typeRange b)

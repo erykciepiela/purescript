@@ -141,6 +141,11 @@ convertType' withinVta fileName = go
         ann = sourceAnnCommented fileName a b
         annRec = sourceAnn fileName a a
       T.TypeApp ann (Env.tyRecord $> annRec) $ goRow row b
+    TypeVariant _ (Wrapped a row b) -> do
+      let
+        ann = sourceAnnCommented fileName a b
+        annVar = sourceAnn fileName a a
+      T.TypeApp ann (Env.tyVariant $> annVar) $ goRow row b
     TypeForall _ kw bindings _ ty -> do
       let
         mkForAll a b v t = do
@@ -589,6 +594,7 @@ convertDeclaration fileName decl = case decl of
         TypeParens _ t -> argName $ wrpValue t
         TypeKinded _ t1 _ t2 -> argName t1 <> argName t2
         TypeRecord _ _ -> "Record"
+        TypeVariant _ _ -> "Variant"
         TypeRow _ _ -> "Row"
         TypeArrName _ _ -> "Function"
         TypeWildcard{} -> "_"

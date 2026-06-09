@@ -156,12 +156,20 @@ addDefaultImport (Qualified toImportAs toImport) m@(Module ss coms mn decls exps
 
 -- | Adds import declarations to a module for an implicit Prim import and Prim
 -- | qualified as Prim, as necessary.
+--
+-- Also imports @Prim.Variant@ qualified as @Prim.Variant@ so that the canonical
+-- @Prim.Variant.Variant@ name produced by the @[ ... ]@ variant type sugar always
+-- resolves, mirroring how the implicit qualified @Prim@ import lets @Prim.Record@
+-- (produced by the @{ ... }@ record sugar) resolve. This is a qualified-only
+-- import, so it does not bring @Variant@ into unqualified scope.
 importPrim :: Module -> Module
 importPrim =
   let
     primModName = C.M_Prim
+    primVariantModName = C.M_Prim_Variant
   in
-    addDefaultImport (Qualified (ByModuleName primModName) primModName)
+    addDefaultImport (Qualified (ByModuleName primVariantModName) primVariantModName)
+      . addDefaultImport (Qualified (ByModuleName primModName) primModName)
       . addDefaultImport (Qualified ByNullSourcePos primModName)
 
 data NameSource = UserNamed | CompilerNamed

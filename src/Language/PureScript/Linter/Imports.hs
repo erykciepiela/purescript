@@ -139,10 +139,12 @@ lintImports (Module _ _ mn mdecls (Just mexports)) env usedImps = do
     | not (isPrim mn' || mn == mn') = 1
   countOpenImports _ = 0
 
-  -- Checks whether a module is the Prim module - used to suppress any checks
-  -- made, as Prim is always implicitly imported.
+  -- Checks whether a module is an implicitly-imported Prim module - used to
+  -- suppress any checks made, as these are always implicitly imported. Both
+  -- Prim and Prim.Variant are added to every module by 'importPrim' (the latter
+  -- so the @[ ... ]@ variant sugar's canonical @Prim.Variant.Variant@ resolves).
   isPrim :: ModuleName -> Bool
-  isPrim = (== C.M_Prim)
+  isPrim mn' = mn' == C.M_Prim || mn' == C.M_Prim_Variant
 
   -- Creates a map of virtual modules mapped to all the declarations that
   -- import to that module, with the corresponding source span, import type,

@@ -27,6 +27,7 @@ primModules =
   , primRowDocsModule
   , primRowListDocsModule
   , primSymbolDocsModule
+  , primVariantDocsModule
   , primIntDocsModule
   , primTypeErrorDocsModule
   ]
@@ -129,6 +130,16 @@ primSymbolDocsModule = Module
   , modReExports = []
   }
 
+primVariantDocsModule :: Module
+primVariantDocsModule = Module
+  { modName = P.moduleNameFromString "Prim.Variant"
+  , modComments = Just "The Prim.Variant module is embedded in the PureScript compiler. Unlike `Prim`, it is not imported implicitly. It contains the `Variant` type constructor, which is the dual of `Record`: the type of a tagged union whose cases are known at compile time."
+  , modDeclarations =
+      [ variant
+      ]
+  , modReExports = []
+  }
+
 primIntDocsModule :: Module
 primIntDocsModule = Module
   { modName = P.moduleNameFromString "Prim.Int"
@@ -181,6 +192,7 @@ lookupPrimTypeKind = ($> ()) . fst . unsafeLookup
     P.primOrderingTypes <>
     P.primRowTypes <>
     P.primRowListTypes <>
+    P.primVariantTypes <>
     P.primTypeErrorTypes
   ) "Docs.Prim: No such Prim type: "
 
@@ -317,6 +329,25 @@ record = primType P.Record $ T.unlines
   , "_Technical note_: PureScript allows duplicate labels in rows, and the"
   , "meaning of `Record r` is based on the _first_ occurrence of each label in"
   , "the row `r`."
+  ]
+
+variant :: Declaration
+variant = primType P.Variant $ T.unlines
+  [ "The type of tagged unions (variants) whose cases are known at compile"
+  , "time. It is the dual of `Record`: where a record holds a value for"
+  , "*every* label in a row, a variant holds a value for *exactly one* label"
+  , "in a row."
+  , ""
+  , "The type signature here means that the `Variant` type constructor takes"
+  , "a row of concrete types. For example:"
+  , ""
+  , "    type Foo = Variant (bar :: Int, baz :: String)"
+  , ""
+  , "The syntactic sugar with square brackets `[ ]` is generally preferred, though:"
+  , ""
+  , "    type Foo = [ bar :: Int, baz :: String ]"
+  , ""
+  , "The row associates a type to each label which may appear in the variant."
   ]
 
 number :: Declaration

@@ -27,7 +27,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 
 import Language.PureScript.Crash (internalError)
-import Language.PureScript.Environment (tyFunction, tyRecord)
+import Language.PureScript.Environment (tyFunction, tyRecord, tyVariant)
 import Language.PureScript.Names (OpName(..), OpNameType(..), ProperName(..), ProperNameType(..), Qualified, coerceProperName, disqualify, showQualified)
 import Language.PureScript.Pretty.Common (before, objectKeyRequiresQuoting)
 import Language.PureScript.Types (Constraint(..), pattern REmptyKinded, RowListItem(..), Type(..), TypeVarVisibility(..), WildcardData(..), eqType, rowToSortedList, typeVarVisibilityPrefix)
@@ -54,6 +54,7 @@ data PrettyPrintType
   | PPForAll [(TypeVarVisibility, Text, Maybe PrettyPrintType)] PrettyPrintType
   | PPFunction PrettyPrintType PrettyPrintType
   | PPRecord [(Label, PrettyPrintType)] (Maybe PrettyPrintType)
+  | PPVariant [(Label, PrettyPrintType)] (Maybe PrettyPrintType)
   | PPRow [(Label, PrettyPrintType)] (Maybe PrettyPrintType)
   | PPTruncated
 
@@ -101,6 +102,7 @@ convertPrettyPrintType = go
     | otherwise = PPTypeApp (goTypeApp d f a) (go (d-1) b)
   goTypeApp d o ty@RCons{}
     | eqType o tyRecord = uncurry PPRecord (goRow d ty)
+    | eqType o tyVariant = uncurry PPVariant (goRow d ty)
   goTypeApp d a b = PPTypeApp (go (d-1) a) (go (d-1) b)
 
 -- TODO(Christoph): get rid of T.unpack s
@@ -195,6 +197,7 @@ matchTypeAtom tro@TypeRenderOptions{troSuggesting = suggesting} =
         | suggesting =  Just $ text $ T.unpack name
         | otherwise = Just $ text $ T.unpack name ++ show s
       match (PPRecord labels tail_) = Just $ prettyPrintRowWith tro '{' '}' labels tail_
+      match (PPVariant labels tail_) = Just $ prettyPrintRowWith tro '[' ']' labels tail_
       match (PPRow labels tail_) = Just $ prettyPrintRowWith tro '(' ')' labels tail_
       match (PPBinaryNoParensType op l r) =
         Just $ typeAsBox' l <> text " " <> typeAsBox' op <> text " " <> typeAsBox' r

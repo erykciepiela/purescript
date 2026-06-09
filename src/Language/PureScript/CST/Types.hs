@@ -142,6 +142,7 @@ data Type a
   | TypeInt a (Maybe SourceToken) SourceToken Integer
   | TypeRow a (Wrapped (Row a))
   | TypeRecord a (Wrapped (Row a))
+  | TypeVariant a (Wrapped (Row a))
   | TypeForall a SourceToken (NonEmpty (TypeVarBinding a)) SourceToken (Type a)
   | TypeKinded a (Type a) SourceToken (Type a)
   | TypeApp a (Type a) (Type a)

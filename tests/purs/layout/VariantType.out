@@ -1,0 +1,10 @@
+module Test where{
+
+type Closed = [ foo :: Int, bar :: String ];
+
+type Open r = [ foo :: Int | r ];
+
+type Empty = [];
+
+type Nested = [ foo :: { x :: Int }, bar :: [ baz :: String ] ]}
+<eof>

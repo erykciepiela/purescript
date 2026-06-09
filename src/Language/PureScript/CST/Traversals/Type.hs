@@ -17,6 +17,7 @@ everythingOnTypes op k = goTy
     TypeInt _ _ _ _ -> k ty
     TypeRow _ (Wrapped _ row _) -> goRow ty row
     TypeRecord _ (Wrapped _ row _) -> goRow ty row
+    TypeVariant _ (Wrapped _ row _) -> goRow ty row
     TypeForall _ _ _ _ ty2 -> k ty `op` goTy ty2
     TypeKinded _ ty2 _ ty3 -> k ty `op` (goTy ty2 `op` goTy ty3)
     TypeApp _ ty2 ty3 -> k ty `op` (goTy ty2 `op` goTy ty3)

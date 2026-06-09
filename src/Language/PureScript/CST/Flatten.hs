@@ -286,6 +286,7 @@ flattenType = \case
   TypeInt _ a b _ -> maybe mempty pure a <> pure b
   TypeRow _ a -> flattenWrapped flattenRow a
   TypeRecord _ a -> flattenWrapped flattenRow a
+  TypeVariant _ a -> flattenWrapped flattenRow a
   TypeForall _ a b c d -> pure a <> foldMap flattenTypeVarBinding b <> pure c <> flattenType d
   TypeKinded _ a b c -> flattenType a <> pure b <> flattenType c
   TypeApp _ a b -> flattenType a <> flattenType b

@@ -351,6 +351,10 @@ tyArray = srcTypeConstructor C.Array
 tyRecord :: SourceType
 tyRecord = srcTypeConstructor C.Record
 
+-- | Type constructor for variants
+tyVariant :: SourceType
+tyVariant = srcTypeConstructor C.Variant
+
 tyVar :: Text -> SourceType
 tyVar = TypeVar nullSourceAnn
 
@@ -405,6 +409,7 @@ allPrimTypes = M.unions
   , primRowTypes
   , primRowListTypes
   , primSymbolTypes
+  , primVariantTypes
   , primIntTypes
   , primTypeErrorTypes
   ]
@@ -456,6 +461,12 @@ primSymbolTypes =
     [ primClass C.SymbolAppend  (\kind -> kindSymbol -:> kindSymbol -:> kindSymbol -:> kind)
     , primClass C.SymbolCompare (\kind -> kindSymbol -:> kindSymbol -:> kindOrdering -:> kind)
     , primClass C.SymbolCons    (\kind -> kindSymbol -:> kindSymbol -:> kindSymbol -:> kind)
+    ]
+
+primVariantTypes :: M.Map (Qualified (ProperName 'TypeName)) (SourceType, TypeKind)
+primVariantTypes =
+  M.fromList
+    [ (C.Variant, (kindRow kindType -:> kindType, ExternData [Representational]))
     ]
 
 primIntTypes :: M.Map (Qualified (ProperName 'TypeName)) (SourceType, TypeKind)
