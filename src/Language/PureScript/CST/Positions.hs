@@ -278,7 +278,7 @@ exprRange = \case
   ExprSection _ a -> (a, a)
   ExprIdent _ a -> qualRange a
   ExprConstructor _ a -> qualRange a
-  ExprVariantInjector _ a b -> (a, lblTok b)
+  ExprVariantInjector _ a b -> (a, lblTok $ sepLast b)
   ExprBoolean _ a _ -> (a, a)
   ExprChar _ a _ -> (a, a)
   ExprString _ a _ -> (a, a)

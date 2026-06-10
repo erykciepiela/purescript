@@ -338,7 +338,7 @@ data Expr a
   | ExprOpName a (QualifiedName (N.OpName 'N.ValueOpName))
   | ExprNegate a SourceToken (Expr a)
   | ExprRecordAccessor a (RecordAccessor a)
-  | ExprVariantInjector a SourceToken Label
+  | ExprVariantInjector a SourceToken (Separated Label)
   | ExprRecordUpdate a (Expr a) (DelimitedNonEmpty (RecordUpdate a))
   | ExprApp a (Expr a) (Expr a)
   | ExprVisibleTypeApp a (Expr a) SourceToken (Type a)

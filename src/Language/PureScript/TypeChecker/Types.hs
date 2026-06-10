@@ -447,12 +447,19 @@ infer' (Accessor prop val) = withErrorMessageHint (ErrorCheckingAccessor val pro
   rest <- freshTypeWithKind (kindRow kindType)
   typed <- tvToExpr <$> check val (srcTypeApp tyRecord (srcRCons (Label prop) field rest))
   return $ TypedValue' True (Accessor prop typed) field
-infer' (VariantInjector ss lbl) = do
+infer' (VariantInjector ss labels) = do
   field <- freshTypeWithKind kindType
-  rest <- freshTypeWithKind (kindRow kindType)
-  let variantTy = srcTypeApp tyVariant (srcRCons (Label lbl) field rest)
-      injTy = srcTypeApp (srcTypeApp tyFunction field) variantTy
-  return $ TypedValue' True (VariantInjector ss lbl) injTy
+  -- Fold the (outermost-first) label chain into nested open variants, e.g.
+  -- `.foo.bar :: a -> Variant (foo :: Variant (bar :: a | _) | _)`. Each level
+  -- gets its own fresh row tail.
+  let go [] = pure field
+      go (l : ls) = do
+        inner <- go ls
+        rest <- freshTypeWithKind (kindRow kindType)
+        pure $ srcTypeApp tyVariant (srcRCons (Label l) inner rest)
+  variantTy <- go (NEL.toList labels)
+  let injTy = srcTypeApp (srcTypeApp tyFunction field) variantTy
+  return $ TypedValue' True (VariantInjector ss labels) injTy
 infer' (Abs binder ret)
   | VarBinder ss arg <- binder = do
       ty <- freshTypeWithKind kindType

@@ -18,5 +18,13 @@ closed = .ok 42
 mapped :: Array (Variant ( ok :: Int | () ))
 mapped = map (.ok) [1, 2, 3]
 
+-- a dot-chain `.foo.bar` nests injectors: `.foo (.bar x)`
+nested :: Variant ( foo :: Variant ( bar :: String ) )
+nested = .foo.bar "abc"
+
+-- bare chain is the composed injector function
+mkNested :: forall r s. Int -> Variant ( a :: Variant ( b :: Int | s ) | r )
+mkNested = .a.b
+
 main :: Effect Unit
 main = log "Done"

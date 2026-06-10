@@ -274,9 +274,10 @@ convertExpr fileName = go
     ExprConstructor _ a -> do
       let ann = sourceQualName fileName a
       positioned ann . AST.Constructor (fst ann) $ qualified a
-    ExprVariantInjector _ dot lbl -> do
-      let ann = sourceAnnCommented fileName dot (lblTok lbl)
-      positioned ann . AST.VariantInjector (fst ann) $ lblName lbl
+    ExprVariantInjector _ dot labels@(Separated h t) -> do
+      let ann = sourceAnnCommented fileName dot (lblTok (sepLast labels))
+      positioned ann . AST.VariantInjector (fst ann) $
+        NE.fromList (lblName h : map (lblName . snd) t)
     ExprBoolean _ a b -> do
       let ann = sourceAnnCommented fileName a a
       positioned ann . AST.Literal (fst ann) $ AST.BooleanLiteral b

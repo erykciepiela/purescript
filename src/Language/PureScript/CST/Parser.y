@@ -436,7 +436,7 @@ expr7 :: { Expr () }
 
 exprAtom :: { Expr () }
   : '_' { ExprSection () $1 }
-  | '.' label { ExprVariantInjector () $1 $2 }
+  | '.' sep(label, '.') { ExprVariantInjector () $1 $2 }
   | hole { ExprHole () $1 }
   | qualIdent { ExprIdent () $1 }
   | qualProperName { ExprConstructor () (getQualifiedProperName $1) }

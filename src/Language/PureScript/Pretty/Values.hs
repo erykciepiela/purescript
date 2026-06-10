@@ -107,7 +107,7 @@ prettyPrintValueAtom :: Int -> Expr -> Box
 prettyPrintValueAtom d (Literal _ l) = prettyPrintLiteralValue d l
 prettyPrintValueAtom _ AnonymousArgument = text "_"
 prettyPrintValueAtom _ (Constructor _ name) = text $ T.unpack $ runProperName (disqualify name)
-prettyPrintValueAtom _ (VariantInjector _ lbl) = textT ("." Monoid.<> prettyPrintObjectKey lbl)
+prettyPrintValueAtom _ (VariantInjector _ labels) = textT (foldMap (("." Monoid.<>) . prettyPrintObjectKey) labels)
 prettyPrintValueAtom _ (Var _ ident) = text $ T.unpack $ showIdent (disqualify ident)
 prettyPrintValueAtom d (BinaryNoParens op lhs rhs) =
   prettyPrintValue (d - 1) lhs `beforeWithSpace` printOp op `beforeWithSpace` prettyPrintValue (d - 1) rhs

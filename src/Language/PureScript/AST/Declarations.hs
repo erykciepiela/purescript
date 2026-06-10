@@ -720,11 +720,13 @@ data Expr
   --
   | Constructor SourceSpan (Qualified (ProperName 'ConstructorName))
   -- |
-  -- A variant injector `.label`, the value-level dual of the record accessor
-  -- section `_.label`. It is a function `forall a r. a -> Variant (label :: a | r)`;
-  -- applied as `.label x` it builds an (open) variant value.
+  -- A variant injector `.label` (or a nested chain `.foo.bar`), the value-level
+  -- dual of the record accessor section `_.label`. A single `.label` is a function
+  -- `forall a r. a -> Variant (label :: a | r)`; a chain nests the injections, so
+  -- `.foo.bar x` builds `Variant (foo :: Variant (bar :: _ | _) | _)`. The labels
+  -- are stored outermost-first.
   --
-  | VariantInjector SourceSpan PSString
+  | VariantInjector SourceSpan (NEL.NonEmpty PSString)
   -- |
   -- A case expression. During the case expansion phase of desugaring, top-level binders will get
   -- desugared into case expressions, hence the need for guards and multiple binders per branch here.
