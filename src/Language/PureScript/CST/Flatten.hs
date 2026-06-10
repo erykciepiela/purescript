@@ -70,6 +70,7 @@ flattenBinder = \case
   BinderVar _ a -> flattenName a
   BinderNamed _ a b c -> flattenName a <> pure b <> flattenBinder c
   BinderConstructor _ a b -> flattenQualifiedName a <> foldMap flattenBinder b
+  BinderVariant _ a b c -> pure a <> flattenSeparated flattenLabel b <> flattenBinder c
   BinderBoolean _ a _ -> pure a
   BinderChar _ a _ -> pure a
   BinderString _ a _ -> pure a

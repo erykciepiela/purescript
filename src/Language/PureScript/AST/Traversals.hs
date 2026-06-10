@@ -88,6 +88,7 @@ everywhereOnValues f g h = (f', g', h')
 
   h' :: Binder -> Binder
   h' (ConstructorBinder ss ctor bs) = h (ConstructorBinder ss ctor (fmap h' bs))
+  h' (VariantBinder ss labels b) = h (VariantBinder ss labels (h' b))
   h' (BinaryNoParensBinder b1 b2 b3) = h (BinaryNoParensBinder (h' b1) (h' b2) (h' b3))
   h' (ParensInBinder b) = h (ParensInBinder (h' b))
   h' (LiteralBinder ss l) = h (LiteralBinder ss (lit h' l))
@@ -164,6 +165,7 @@ everywhereOnValuesTopDownM f g h = (f' <=< f, g' <=< g, h' <=< h)
   h' :: Binder -> m Binder
   h' (LiteralBinder ss l) = LiteralBinder ss <$> litM (h >=> h') l
   h' (ConstructorBinder ss ctor bs) = ConstructorBinder ss ctor <$> traverse (h' <=< h) bs
+  h' (VariantBinder ss labels b) = VariantBinder ss labels <$> (h b >>= h')
   h' (BinaryNoParensBinder b1 b2 b3) = BinaryNoParensBinder <$> (h b1 >>= h') <*> (h b2 >>= h') <*> (h b3 >>= h')
   h' (ParensInBinder b) = ParensInBinder <$> (h b >>= h')
   h' (NamedBinder ss name b) = NamedBinder ss name <$> (h b >>= h')
@@ -234,6 +236,7 @@ everywhereOnValuesM f g h = (f', g', h')
   h' :: Binder -> m Binder
   h' (LiteralBinder ss l) = (LiteralBinder ss <$> litM h' l) >>= h
   h' (ConstructorBinder ss ctor bs) = (ConstructorBinder ss ctor <$> traverse h' bs) >>= h
+  h' (VariantBinder ss labels b) = (VariantBinder ss labels <$> h' b) >>= h
   h' (BinaryNoParensBinder b1 b2 b3) = (BinaryNoParensBinder <$> h' b1 <*> h' b2 <*> h' b3) >>= h
   h' (ParensInBinder b) = (ParensInBinder <$> h' b) >>= h
   h' (NamedBinder ss name b) = (NamedBinder ss name <$> h' b) >>= h
@@ -307,6 +310,7 @@ everythingOnValues (<>.) f g h i j = (f', g', h', i', j')
   h' :: Binder -> r
   h' b@(LiteralBinder _ l) = lit (h b) h' l
   h' b@(ConstructorBinder _ _ bs) = foldl (<>.) (h b) (fmap h' bs)
+  h' b@(VariantBinder _ _ b1) = h b <>. h' b1
   h' b@(BinaryNoParensBinder b1 b2 b3) = h b <>. h' b1 <>. h' b2 <>. h' b3
   h' b@(ParensInBinder b1) = h b <>. h' b1
   h' b@(NamedBinder _ _ b1) = h b <>. h' b1
@@ -392,6 +396,7 @@ everythingWithContextOnValues s0 r0 (<>.) f g h i j = (f'' s0, g'' s0, h'' s0, i
   h' :: s -> Binder -> r
   h' s (LiteralBinder _ l) = lit h'' s l
   h' s (ConstructorBinder _ _ bs) = foldl (<>.) r0 (fmap (h'' s) bs)
+  h' s (VariantBinder _ _ b) = h'' s b
   h' s (BinaryNoParensBinder b1 b2 b3) = h'' s b1 <>. h'' s b2 <>. h'' s b3
   h' s (ParensInBinder b) = h'' s b
   h' s (NamedBinder _ _ b1) = h'' s b1
@@ -499,6 +504,7 @@ everywhereWithContextOnValuesM s0 f g h i j k = (f'' s0, g'' s0, h'' s0, i'' s0,
 
   h' s (LiteralBinder ss l) = LiteralBinder ss <$> lit h'' s l
   h' s (ConstructorBinder ss ctor bs) = ConstructorBinder ss ctor <$> traverse (h'' s) bs
+  h' s (VariantBinder ss labels b) = VariantBinder ss labels <$> h'' s b
   h' s (BinaryNoParensBinder b1 b2 b3) = BinaryNoParensBinder <$> h'' s b1 <*> h'' s b2 <*> h'' s b3
   h' s (ParensInBinder b) = ParensInBinder <$> h'' s b
   h' s (NamedBinder ss name b) = NamedBinder ss name <$> h'' s b
@@ -614,6 +620,7 @@ everythingWithScope f g h i j = (f'', g'', h'', i'', \s -> snd . j'' s)
   h' :: S.Set ScopedIdent -> Binder -> r
   h' s (LiteralBinder _ l) = lit h'' s l
   h' s (ConstructorBinder _ _ bs) = foldMap (h'' s) bs
+  h' s (VariantBinder _ _ b) = h'' s b
   h' s (BinaryNoParensBinder b1 b2 b3) = foldMap (h'' s) [b1, b2, b3]
   h' s (ParensInBinder b) = h'' s b
   h' s (NamedBinder _ name b1) = h'' (S.insert (LocalIdent name) s) b1

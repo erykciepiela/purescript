@@ -183,6 +183,16 @@ moduleToCoreFn env (A.Module modSS coms mn decls (Just exps)) =
   binderToCoreFn _ com (A.ConstructorBinder ss dctor@(Qualified mn' _) bs) =
     let (_, tctor, _, _) = lookupConstructor env dctor
     in ConstructorBinder (ss, com, Just $ getConstructorMeta dctor) (Qualified mn' tctor) dctor (fmap (binderToCoreFn ss []) bs)
+  -- A variant pattern `.label` (or chain `.foo.bar`) lowers to nested
+  -- object-literal binders matching the runtime rep
+  -- `{ type: "label", value: <payload> }`, mirroring the injector. The string
+  -- field is the tag guard; the `value` field binds the payload (or recurses).
+  binderToCoreFn _ com (A.VariantBinder ss labels b) =
+    let wrap lbl inner = LiteralBinder (ss, com, Nothing) $ ObjectLiteral
+          [ ("type", LiteralBinder (ss, com, Nothing) (StringLiteral lbl))
+          , ("value", inner)
+          ]
+    in foldr wrap (binderToCoreFn ss [] b) labels
   binderToCoreFn _ com (A.NamedBinder ss name b) =
     NamedBinder (ss, com, Nothing) name (binderToCoreFn ss [] b)
   binderToCoreFn _ com (A.PositionedBinder ss com1 b) =

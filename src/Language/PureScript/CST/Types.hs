@@ -430,6 +430,7 @@ data Binder a
   | BinderVar a (Name Ident)
   | BinderNamed a (Name Ident) SourceToken (Binder a)
   | BinderConstructor a (QualifiedName (N.ProperName 'N.ConstructorName)) [Binder a]
+  | BinderVariant a SourceToken (Separated Label) (Binder a)
   | BinderBoolean a SourceToken Bool
   | BinderChar a SourceToken Char
   | BinderString a SourceToken PSString

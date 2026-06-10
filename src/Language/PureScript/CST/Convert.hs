@@ -400,6 +400,9 @@ convertBinder fileName = go
     binder@(BinderConstructor _ a bs) -> do
       let ann = uncurry (sourceAnnCommented fileName) $ binderRange binder
       positioned ann . AST.ConstructorBinder (fst ann) (qualified a) $ go <$> bs
+    binder@(BinderVariant _ _ (Separated h t) b) -> do
+      let ann = uncurry (sourceAnnCommented fileName) $ binderRange binder
+      positioned ann . AST.VariantBinder (fst ann) (NE.fromList (lblName h : map (lblName . snd) t)) $ go b
     BinderBoolean _ a b -> do
       let ann = sourceAnnCommented fileName a a
       positioned ann . AST.LiteralBinder (fst ann) $ AST.BooleanLiteral b

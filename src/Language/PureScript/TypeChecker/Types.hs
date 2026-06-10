@@ -658,6 +658,18 @@ inferBinder val (ConstructorBinder ss ctor binders) = do
     where
     go args (TypeApp _ (TypeApp _ fn arg) ret) | eqType fn tyFunction = go (arg : args) ret
     go args ret = (args, ret)
+inferBinder val (VariantBinder _ labels binder) = do
+  field <- freshTypeWithKind kindType
+  -- Mirror the injector: fold the (outermost-first) label chain into nested open
+  -- variants, unify the scrutinee with it, then bind the payload to `field`.
+  let go [] = pure field
+      go (l : ls) = do
+        inner <- go ls
+        rest <- freshTypeWithKind (kindRow kindType)
+        pure $ srcTypeApp tyVariant (srcRCons (Label l) inner rest)
+  variantTy <- go (NEL.toList labels)
+  unifyTypes val variantTy
+  inferBinder field binder
 inferBinder val (LiteralBinder _ (ObjectLiteral props)) = do
   row <- freshTypeWithKind (kindRow kindType)
   rest <- freshTypeWithKind (kindRow kindType)

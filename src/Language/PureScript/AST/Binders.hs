@@ -7,11 +7,13 @@ module Language.PureScript.AST.Binders where
 import Prelude
 
 import Control.DeepSeq (NFData)
+import Data.List.NonEmpty qualified as NEL
 import GHC.Generics (Generic)
 import Language.PureScript.AST.SourcePos (SourceSpan)
 import Language.PureScript.AST.Literals (Literal(..))
 import Language.PureScript.Names (Ident, OpName, OpNameType(..), ProperName, ProperNameType(..), Qualified)
 import Language.PureScript.Comments (Comment)
+import Language.PureScript.PSString (PSString)
 import Language.PureScript.Types (SourceType)
 
 -- |
@@ -34,6 +36,11 @@ data Binder
   -- A binder which matches a data constructor
   --
   | ConstructorBinder SourceSpan (Qualified (ProperName 'ConstructorName)) [Binder]
+  -- |
+  -- A binder which matches one case of a variant. The label chain mirrors the
+  -- 'VariantInjector' expression; the nested binder matches the payload.
+  --
+  | VariantBinder SourceSpan (NEL.NonEmpty PSString) Binder
   -- |
   -- A operator alias binder. During the rebracketing phase of desugaring,
   -- this data constructor will be removed.
@@ -82,6 +89,8 @@ instance Eq Binder where
     ident == ident'
   (ConstructorBinder _ qpc bs) == (ConstructorBinder _ qpc' bs') =
     qpc == qpc' && bs == bs'
+  (VariantBinder _ labels b) == (VariantBinder _ labels' b') =
+    labels == labels' && b == b'
   (OpBinder _ qov) == (OpBinder _ qov') =
     qov == qov'
   (BinaryNoParensBinder b1 b2 b3) == (BinaryNoParensBinder b1' b2' b3') =
@@ -104,6 +113,8 @@ instance Ord Binder where
     compare ident ident'
   compare (ConstructorBinder _ qpc bs) (ConstructorBinder _ qpc' bs') =
     compare qpc qpc' <> compare bs bs'
+  compare (VariantBinder _ labels b) (VariantBinder _ labels' b') =
+    compare labels labels' <> compare b b'
   compare (OpBinder _ qov) (OpBinder _ qov') =
     compare qov qov'
   compare (BinaryNoParensBinder b1 b2 b3) (BinaryNoParensBinder b1' b2' b3') =
@@ -124,12 +135,13 @@ instance Ord Binder where
         orderOf LiteralBinder{} = 1
         orderOf VarBinder{} = 2
         orderOf ConstructorBinder{} = 3
-        orderOf OpBinder{} = 4
-        orderOf BinaryNoParensBinder{} = 5
-        orderOf ParensInBinder{} = 6
-        orderOf NamedBinder{} = 7
-        orderOf PositionedBinder{} = 8
-        orderOf TypedBinder{} = 9
+        orderOf VariantBinder{} = 4
+        orderOf OpBinder{} = 5
+        orderOf BinaryNoParensBinder{} = 6
+        orderOf ParensInBinder{} = 7
+        orderOf NamedBinder{} = 8
+        orderOf PositionedBinder{} = 9
+        orderOf TypedBinder{} = 10
 
 -- |
 -- Collect all names introduced in binders in an expression
@@ -143,6 +155,7 @@ binderNamesWithSpans = go []
   go ns (LiteralBinder _ b) = lit ns b
   go ns (VarBinder ss name) = (ss, name) : ns
   go ns (ConstructorBinder _ _ bs) = foldl go ns bs
+  go ns (VariantBinder _ _ b) = go ns b
   go ns (BinaryNoParensBinder b1 b2 b3) = foldl go ns [b1, b2, b3]
   go ns (ParensInBinder b) = go ns b
   go ns (NamedBinder ss name b) = go ((ss, name) : ns) b

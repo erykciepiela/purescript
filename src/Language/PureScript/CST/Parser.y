@@ -586,6 +586,7 @@ binder2 :: { Binder () }
 
 binderAtom :: { Binder () }
   : '_' { BinderWildcard () $1 }
+  | '.' sep(label, '.') binderAtom { BinderVariant () $1 $2 $3 }
   | ident %shift { BinderVar () $1 }
   | ident '@' binderAtom { BinderNamed () $1 $2 $3 }
   | qualProperName { BinderConstructor () (getQualifiedProperName $1) [] }

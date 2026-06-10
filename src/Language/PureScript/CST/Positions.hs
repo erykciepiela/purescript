@@ -322,6 +322,7 @@ binderRange = \case
   BinderConstructor _ a bs
     | [] <- bs -> qualRange a
     | otherwise -> (qualTok a, snd . binderRange $ last bs)
+  BinderVariant _ a _ b -> (a, snd $ binderRange b)
   BinderBoolean _ a _ -> (a, a)
   BinderChar _ a _ -> (a, a)
   BinderString _ a _ -> (a, a)
