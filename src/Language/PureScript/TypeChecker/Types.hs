@@ -48,7 +48,7 @@ import Data.IntSet qualified as IS
 import Language.PureScript.AST
 import Language.PureScript.Crash (internalError)
 import Language.PureScript.Environment
-import Language.PureScript.Errors (ErrorMessage(..), MultipleErrors, SimpleErrorMessage(..), errorMessage, errorMessage', escalateWarningWhen, internalCompilerError, onErrorMessages, onTypesInErrorMessage, parU)
+import Language.PureScript.Errors (ErrorMessage(..), MultipleErrors(..), SimpleErrorMessage(..), errorMessage, errorMessage', escalateWarningWhen, internalCompilerError, onErrorMessages, onTypesInErrorMessage, parU)
 import Language.PureScript.Names (pattern ByNullSourcePos, Ident(..), ModuleName, Name(..), ProperName(..), ProperNameType(..), Qualified(..), QualifiedBy(..), byMaybeModuleName, coerceProperName, freshIdent)
 import Language.PureScript.TypeChecker.Deriving (deriveInstance)
 import Language.PureScript.TypeChecker.Entailment (InstanceContext, newDictionaries, replaceTypeClassDictionaries)
@@ -96,7 +96,33 @@ typesOf bindingGroupType moduleName vals = withFreshSubstitution $ do
       ds2 <- forM untyped $ \e -> withoutWarnings $ typeForBindingGroupElement e dict
       return (map (False, ) ds1 ++ map (True, ) ds2, w)
 
-    inferred <- forM tys $ \(shouldGeneralize, ((sai@((ss, _), ident), (val, ty)), _)) -> do
+    -- If constraint solving or generalization fails below, the group's typed
+    -- holes have already been inferred, and their types are the most useful
+    -- thing we can report: flush them alongside the failure instead of letting
+    -- the throw swallow them. Each hole's type is wrapped in the unsolved
+    -- constraints it shares unknowns with, so a single message carries both
+    -- under one unknown-naming (messages are pretty-printed with independent
+    -- unknown numbering, so correlating across two messages is impossible).
+    let flushHolesOnError err = do
+          errState <- get
+          let errSubst = checkSubstitution errState
+              pendingCons =
+                [ mapConstraintArgs (map (substituteType errSubst)) con
+                | ErrorMessage _ (NoInstanceFound con _ _) <- runMultipleErrors err
+                ]
+              attachPending (ErrorMessage hints (HoleInferredType name hty ctx ts)) =
+                let holeUnks = unknowns hty
+                    shares con = not . IS.null . IS.intersection holeUnks $ foldMap unknowns (constraintArgs con)
+                in ErrorMessage hints (HoleInferredType name (foldr srcConstrainedType hty (filter shares pendingCons)) ctx ts)
+              attachPending other = other
+              holeErrors =
+                filter isHoleError
+                  . runMultipleErrors
+                  . onErrorMessages (attachPending . runTypeSearch Nothing errState . replaceTypes errSubst)
+                  $ wInfer <> foldMap (snd . snd) tys
+          throwError $ err <> MultipleErrors holeErrors
+
+    inferred <- flip catchError flushHolesOnError $ forM tys $ \(shouldGeneralize, ((sai@((ss, _), ident), (val, ty)), _)) -> do
       -- Replace type class dictionary placeholders with actual dictionaries
       (val', unsolved) <- replaceTypeClassDictionaries shouldGeneralize val
       -- Generalize and constrain the type
