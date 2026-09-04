@@ -30,12 +30,13 @@ import Data.Text qualified as T
 import Language.PureScript.AST
 import Language.PureScript.AST.Declarations.ChainId (ChainId)
 import Language.PureScript.Constants.Libs qualified as Libs
+import Language.PureScript.Constants.Prim qualified as CPrim
 import Language.PureScript.Crash (internalError)
 import Language.PureScript.Environment (DataDeclType(..), Environment(..), FunctionalDependency, NameKind(..), NameVisibility(..), TypeClassData(..), TypeKind(..), isDictTypeName, kindArity, makeTypeClassData, nominalRolesForKind, tyFunction)
 import Language.PureScript.Errors (MultipleErrors, SimpleErrorMessage(..), addHint, errorMessage, errorMessage', positionedError, rethrow, warnAndRethrow)
 import Language.PureScript.Linter (checkExhaustiveExpr)
 import Language.PureScript.Linter.Wildcards (ignoreWildcardsUnderCompleteTypeSignatures)
-import Language.PureScript.Names (Ident, ModuleName, ProperName, ProperNameType(..), Qualified(..), QualifiedBy(..), coerceProperName, disqualify, isPlainIdent, mkQualified)
+import Language.PureScript.Names (Ident, ModuleName, ProperName, ProperNameType(..), Qualified(..), QualifiedBy(..), coerceProperName, disqualify, isPlainIdent, mkQualified, moduleNameFromString)
 import Language.PureScript.Roles (Role)
 import Language.PureScript.Sugar.Names.Env (Exports(..))
 import Language.PureScript.TypeChecker.Kinds as T
@@ -447,7 +448,16 @@ typeCheckAll moduleName = traverse go
   findNonOrphanModules (Qualified (ByModuleName mn') _) typeClass tys' = nonOrphanModules
     where
     nonOrphanModules :: S.Set ModuleName
-    nonOrphanModules = S.insert mn' nonOrphanModules'
+    nonOrphanModules = allowVariantHome (S.insert mn' nonOrphanModules')
+
+    -- @Prim.Variant.Variant@ is defined at the Haskell level, so its instances
+    -- cannot be declared in its own (source-less) module. Treat @Data.Variant@
+    -- as the canonical, non-orphan home for them, mirroring how the instances
+    -- for the built-in @Record@ type live in the Prelude.
+    allowVariantHome :: S.Set ModuleName -> S.Set ModuleName
+    allowVariantHome ms
+      | CPrim.M_Prim_Variant `S.member` ms = S.insert (moduleNameFromString "Data.Variant") ms
+      | otherwise = ms
 
     typeModule :: SourceType -> Maybe ModuleName
     typeModule (TypeVar _ _) = Nothing

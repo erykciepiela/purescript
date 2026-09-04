@@ -206,6 +206,12 @@ primSymbolExports :: Exports
 primSymbolExports = mkPrimExports primSymbolTypes primSymbolClasses
 
 -- |
+-- The exported types from the @Prim.Variant@ module
+--
+primVariantExports :: Exports
+primVariantExports = mkPrimExports primVariantTypes mempty
+
+-- |
 -- The exported types from the @Prim.Int@ module
 primIntExports :: Exports
 primIntExports = mkPrimExports primIntTypes primIntClasses
@@ -266,6 +272,9 @@ primEnv = M.fromList
     )
   , ( C.M_Prim_Symbol
     , (internalModuleSourceSpan "<Prim.Symbol>", nullImports, primSymbolExports)
+    )
+  , ( C.M_Prim_Variant
+    , (internalModuleSourceSpan "<Prim.Variant>", nullImports, primVariantExports)
     )
   , ( C.M_Prim_Int
     , (internalModuleSourceSpan "<Prim.Int>", nullImports, primIntExports)

@@ -142,6 +142,7 @@ data Type a
   | TypeInt a (Maybe SourceToken) SourceToken Integer
   | TypeRow a (Wrapped (Row a))
   | TypeRecord a (Wrapped (Row a))
+  | TypeVariant a (Wrapped (Row a))
   | TypeForall a SourceToken (NonEmpty (TypeVarBinding a)) SourceToken (Type a)
   | TypeKinded a (Type a) SourceToken (Type a)
   | TypeApp a (Type a) (Type a)
@@ -346,6 +347,7 @@ data Expr a
   | ExprOpName a (QualifiedName (N.OpName 'N.ValueOpName))
   | ExprNegate a SourceToken (Expr a)
   | ExprRecordAccessor a (RecordAccessor a)
+  | ExprVariantInjector a SourceToken (Separated Label)
   | ExprRecordUpdate a (Expr a) (DelimitedNonEmpty (RecordUpdate a))
   | ExprApp a (Expr a) (Expr a)
   | ExprVisibleTypeApp a (Expr a) SourceToken (Type a)
@@ -437,6 +439,7 @@ data Binder a
   | BinderVar a (Name Ident)
   | BinderNamed a (Name Ident) SourceToken (Binder a)
   | BinderConstructor a (QualifiedName (N.ProperName 'N.ConstructorName)) [Binder a]
+  | BinderVariant a SourceToken (Separated Label) (Binder a)
   | BinderBoolean a SourceToken Bool
   | BinderChar a SourceToken Char
   | BinderString a SourceToken PSString

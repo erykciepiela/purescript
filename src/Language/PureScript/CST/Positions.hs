@@ -255,6 +255,7 @@ typeRange = \case
   TypeInt _ a b _ -> (fromMaybe b a, b)
   TypeRow _ a -> wrappedRange a
   TypeRecord _ a -> wrappedRange a
+  TypeVariant _ a -> wrappedRange a
   TypeForall _ a _ _ b -> (a, snd $ typeRange b)
   TypeKinded _ a _ b -> (fst $ typeRange a, snd $ typeRange b)
   TypeApp _ a b -> (fst $ typeRange a, snd $ typeRange b)
@@ -284,6 +285,7 @@ exprRange = \case
   ExprSection _ a -> (a, a)
   ExprIdent _ a -> qualRange a
   ExprConstructor _ a -> qualRange a
+  ExprVariantInjector _ a b -> (a, lblTok $ sepLast b)
   ExprBoolean _ a _ -> (a, a)
   ExprChar _ a _ -> (a, a)
   ExprString _ a _ -> (a, a)
@@ -327,6 +329,7 @@ binderRange = \case
   BinderConstructor _ a bs
     | [] <- bs -> qualRange a
     | otherwise -> (qualTok a, snd . binderRange $ last bs)
+  BinderVariant _ a _ b -> (a, snd $ binderRange b)
   BinderBoolean _ a _ -> (a, a)
   BinderChar _ a _ -> (a, a)
   BinderString _ a _ -> (a, a)

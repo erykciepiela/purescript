@@ -45,6 +45,12 @@ typeLiterals = mkPattern match
               , renderRow labels tail_
               , syntax "}"
               ]
+  match (PPVariant labels tail_) =
+    Just $ mintersperse sp
+              [ syntax "["
+              , renderRow labels tail_
+              , syntax "]"
+              ]
   match (PPTypeConstructor n) =
     Just (typeCtor n)
   match (PPRow labels tail_) =

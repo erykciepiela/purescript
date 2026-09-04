@@ -156,12 +156,20 @@ addDefaultImport (Qualified toImportAs toImport) m@(Module ss coms mn decls exps
 
 -- | Adds import declarations to a module for an implicit Prim import and Prim
 -- | qualified as Prim, as necessary.
+--
+-- Also imports @Prim.Variant@ qualified as @Prim.Variant@ so that the canonical
+-- @Prim.Variant.Variant@ name produced by the @[ ... ]@ variant type sugar always
+-- resolves, mirroring how the implicit qualified @Prim@ import lets @Prim.Record@
+-- (produced by the @{ ... }@ record sugar) resolve. This is a qualified-only
+-- import, so it does not bring @Variant@ into unqualified scope.
 importPrim :: Module -> Module
 importPrim =
   let
     primModName = C.M_Prim
+    primVariantModName = C.M_Prim_Variant
   in
-    addDefaultImport (Qualified (ByModuleName primModName) primModName)
+    addDefaultImport (Qualified (ByModuleName primVariantModName) primVariantModName)
+      . addDefaultImport (Qualified (ByModuleName primModName) primModName)
       . addDefaultImport (Qualified ByNullSourcePos primModName)
 
 data NameSource = UserNamed | CompilerNamed
@@ -711,6 +719,14 @@ data Expr
   -- A data constructor
   --
   | Constructor SourceSpan (Qualified (ProperName 'ConstructorName))
+  -- |
+  -- A variant injector `.label` (or a nested chain `.foo.bar`), the value-level
+  -- dual of the record accessor section `_.label`. A single `.label` is a function
+  -- `forall a r. a -> Variant (label :: a | r)`; a chain nests the injections, so
+  -- `.foo.bar x` builds `Variant (foo :: Variant (bar :: _ | _) | _)`. The labels
+  -- are stored outermost-first.
+  --
+  | VariantInjector SourceSpan (NEL.NonEmpty PSString)
   -- |
   -- A case expression. During the case expansion phase of desugaring, top-level binders will get
   -- desugared into case expressions, hence the need for guards and multiple binders per branch here.

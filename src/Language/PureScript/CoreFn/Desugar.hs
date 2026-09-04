@@ -133,6 +133,18 @@ moduleToCoreFn env (A.Module modSS coms mn decls (Just exps)) =
                         (Right $ exprToCoreFn ss [] Nothing v3) ]
   exprToCoreFn _ com _ (A.Constructor ss name) =
     Var (ss, com, Just $ getConstructorMeta name) $ fmap properToIdent name
+  -- A variant injector `.label` (or chain `.foo.bar`) lowers to a function
+  -- building the runtime representation `{ type: "label", value: <arg> }`
+  -- (matching purescript-variant's VariantRep), nested outermost-first for a
+  -- chain. The GenIdent binder is made unique by the Renamer.
+  exprToCoreFn ss com _ (A.VariantInjector _ labels) =
+    let v = GenIdent (Just "variant") 0
+        wrap lbl inner = Literal (ssAnn ss) $ ObjectLiteral
+          [ ("type", Literal (ssAnn ss) (StringLiteral lbl))
+          , ("value", inner)
+          ]
+        body = foldr wrap (Var (ssAnn ss) (Qualified ByNullSourcePos v)) labels
+    in Abs (ss, com, Nothing) v body
   exprToCoreFn ss com _ (A.Case vs alts) =
     Case (ss, com, Nothing) (fmap (exprToCoreFn ss [] Nothing) vs) (fmap (altToCoreFn ss) alts)
   exprToCoreFn ss com _ (A.TypedValue _ v ty) =
@@ -171,6 +183,16 @@ moduleToCoreFn env (A.Module modSS coms mn decls (Just exps)) =
   binderToCoreFn _ com (A.ConstructorBinder ss dctor@(Qualified mn' _) bs) =
     let (_, tctor, _, _) = lookupConstructor env dctor
     in ConstructorBinder (ss, com, Just $ getConstructorMeta dctor) (Qualified mn' tctor) dctor (fmap (binderToCoreFn ss []) bs)
+  -- A variant pattern `.label` (or chain `.foo.bar`) lowers to nested
+  -- object-literal binders matching the runtime rep
+  -- `{ type: "label", value: <payload> }`, mirroring the injector. The string
+  -- field is the tag guard; the `value` field binds the payload (or recurses).
+  binderToCoreFn _ com (A.VariantBinder ss labels b) =
+    let wrap lbl inner = LiteralBinder (ss, com, Nothing) $ ObjectLiteral
+          [ ("type", LiteralBinder (ss, com, Nothing) (StringLiteral lbl))
+          , ("value", inner)
+          ]
+    in foldr wrap (binderToCoreFn ss [] b) labels
   binderToCoreFn _ com (A.NamedBinder ss name b) =
     NamedBinder (ss, com, Nothing) name (binderToCoreFn ss [] b)
   binderToCoreFn _ com (A.PositionedBinder ss com1 b) =

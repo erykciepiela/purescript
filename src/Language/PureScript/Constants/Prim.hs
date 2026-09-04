@@ -47,6 +47,9 @@ $(TH.declare do
   TH.mod "Prim.Symbol" do
     TH.prefixWith "Symbol" do TH.clss ["Append", "Compare", "Cons"]
 
+  TH.mod "Prim.Variant" do
+    TH.ty "Variant"
+
   TH.mod "Prim.TypeError" do
     TH.clss ["Fail", "Warn"]
     TH.tys ["Above", "Beside", "Doc", "Quote", "QuoteLabel", "Text"]
@@ -54,4 +57,4 @@ $(TH.declare do
   )
 
 primModules :: [ModuleName]
-primModules = [M_Prim, M_Prim_Boolean, M_Prim_Coerce, M_Prim_Ordering, M_Prim_Row, M_Prim_RowList, M_Prim_Symbol, M_Prim_Int, M_Prim_TypeError]
+primModules = [M_Prim, M_Prim_Boolean, M_Prim_Coerce, M_Prim_Ordering, M_Prim_Row, M_Prim_RowList, M_Prim_Symbol, M_Prim_Variant, M_Prim_Int, M_Prim_TypeError]

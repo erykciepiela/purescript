@@ -141,6 +141,11 @@ convertType' withinVta fileName = go
         ann = sourceAnnCommented fileName a b
         annRec = sourceAnn fileName a a
       T.TypeApp ann (Env.tyRecord $> annRec) $ goRow row b
+    TypeVariant _ (Wrapped a row b) -> do
+      let
+        ann = sourceAnnCommented fileName a b
+        annVar = sourceAnn fileName a a
+      T.TypeApp ann (Env.tyVariant $> annVar) $ goRow row b
     TypeForall _ kw bindings _ ty -> do
       let
         mkForAll a b v t = do
@@ -269,6 +274,10 @@ convertExpr fileName = go
     ExprConstructor _ a -> do
       let ann = sourceQualName fileName a
       positioned ann . AST.Constructor (fst ann) $ qualified a
+    ExprVariantInjector _ dot labels@(Separated h t) -> do
+      let ann = sourceAnnCommented fileName dot (lblTok (sepLast labels))
+      positioned ann . AST.VariantInjector (fst ann) $
+        NE.fromList (lblName h : map (lblName . snd) t)
     ExprBoolean _ a b -> do
       let ann = sourceAnnCommented fileName a a
       positioned ann . AST.Literal (fst ann) $ AST.BooleanLiteral b
@@ -391,6 +400,9 @@ convertBinder fileName = go
     binder@(BinderConstructor _ a bs) -> do
       let ann = uncurry (sourceAnnCommented fileName) $ binderRange binder
       positioned ann . AST.ConstructorBinder (fst ann) (qualified a) $ go <$> bs
+    binder@(BinderVariant _ _ (Separated h t) b) -> do
+      let ann = uncurry (sourceAnnCommented fileName) $ binderRange binder
+      positioned ann . AST.VariantBinder (fst ann) (NE.fromList (lblName h : map (lblName . snd) t)) $ go b
     BinderBoolean _ a b -> do
       let ann = sourceAnnCommented fileName a a
       positioned ann . AST.LiteralBinder (fst ann) $ AST.BooleanLiteral b
@@ -574,6 +586,7 @@ convertDeclaration fileName decl = case decl of
         TypeParens _ t -> argName $ wrpValue t
         TypeKinded _ t1 _ t2 -> argName t1 <> argName t2
         TypeRecord _ _ -> "Record"
+        TypeVariant _ _ -> "Variant"
         TypeRow _ _ -> "Row"
         TypeArrName _ _ -> "Function"
         TypeWildcard{} -> "_"

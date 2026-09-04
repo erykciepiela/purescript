@@ -36,7 +36,13 @@ import qualified Language.PureScript.Roles as R
 import Language.PureScript.PSString (PSString)
 }
 
-%expect 0
+-- The 2 shift/reduce conflicts come from the variant injector `.label`
+-- (`exprAtom : '.' label`) overlapping with record access (`exprAtom '.' …`):
+-- after an atom, `.` shifts toward record access rather than starting a new
+-- `.label` application argument. Happy resolves these by shift, which preserves
+-- all existing parses (record access still wins) and means `.label` needs parens
+-- in argument position (`f (.foo)`), like operator/accessor sections.
+%expect 2
 
 %name parseType type
 %name parseExpr expr
@@ -319,6 +325,7 @@ typeAtom :: { Type ()}
   | hole { TypeHole () $1 }
   | '(->)' { TypeArrName () $1 }
   | '{' row '}' { TypeRecord () (Wrapped $1 $2 $3) }
+  | '[' row ']' { TypeVariant () (Wrapped $1 $2 $3) }
   | '(' row ')' { TypeRow () (Wrapped $1 $2 $3) }
   | '(' type1 ')' { TypeParens () (Wrapped $1 $2 $3) }
   | '(' typeKindedAtom '::' type ')' { TypeParens () (Wrapped $1 (TypeKinded () $2 $3 $4) $5) }
@@ -333,6 +340,7 @@ typeKindedAtom :: { Type () }
   | int { uncurry (TypeInt () Nothing) $1 }
   | hole { TypeHole () $1 }
   | '{' row '}' { TypeRecord () (Wrapped $1 $2 $3) }
+  | '[' row ']' { TypeVariant () (Wrapped $1 $2 $3) }
   | '(' row ')' { TypeRow () (Wrapped $1 $2 $3) }
   | '(' type1 ')' { TypeParens () (Wrapped $1 $2 $3) }
   | '(' typeKindedAtom '::' type ')' { TypeParens () (Wrapped $1 (TypeKinded () $2 $3 $4) $5) }
@@ -428,6 +436,7 @@ expr7 :: { Expr () }
 
 exprAtom :: { Expr () }
   : '_' { ExprSection () $1 }
+  | '.' sep(label, '.') { ExprVariantInjector () $1 $2 }
   | hole { ExprHole () $1 }
   | qualIdent { ExprIdent () $1 }
   | qualProperName { ExprConstructor () (getQualifiedProperName $1) }
@@ -577,6 +586,7 @@ binder2 :: { Binder () }
 
 binderAtom :: { Binder () }
   : '_' { BinderWildcard () $1 }
+  | '.' sep(label, '.') binderAtom { BinderVariant () $1 $2 $3 }
   | ident %shift { BinderVar () $1 }
   | ident '@' binderAtom { BinderNamed () $1 $2 $3 }
   | qualProperName { BinderConstructor () (getQualifiedProperName $1) [] }

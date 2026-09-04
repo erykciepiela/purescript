@@ -95,6 +95,7 @@ prettyPrintValue d (Literal _ l) = prettyPrintLiteralValue d l
 prettyPrintValue _ (Hole name) = text "?" <> textT name
 prettyPrintValue d expr@AnonymousArgument{} = prettyPrintValueAtom d expr
 prettyPrintValue d expr@Constructor{} = prettyPrintValueAtom d expr
+prettyPrintValue d expr@VariantInjector{} = prettyPrintValueAtom d expr
 prettyPrintValue d expr@Var{} = prettyPrintValueAtom d expr
 prettyPrintValue d expr@Op{} = prettyPrintValueAtom d expr
 prettyPrintValue d expr@BinaryNoParens{} = prettyPrintValueAtom d expr
@@ -106,6 +107,7 @@ prettyPrintValueAtom :: Int -> Expr -> Box
 prettyPrintValueAtom d (Literal _ l) = prettyPrintLiteralValue d l
 prettyPrintValueAtom _ AnonymousArgument = text "_"
 prettyPrintValueAtom _ (Constructor _ name) = text $ T.unpack $ runProperName (disqualify name)
+prettyPrintValueAtom _ (VariantInjector _ labels) = textT (foldMap (("." Monoid.<>) . prettyPrintObjectKey) labels)
 prettyPrintValueAtom _ (Var _ ident) = text $ T.unpack $ showIdent (disqualify ident)
 prettyPrintValueAtom d (BinaryNoParens op lhs rhs) =
   prettyPrintValue (d - 1) lhs `beforeWithSpace` printOp op `beforeWithSpace` prettyPrintValue (d - 1) rhs
@@ -193,6 +195,7 @@ prettyPrintBinderAtom (LiteralBinder _ l) = prettyPrintLiteralBinder l
 prettyPrintBinderAtom (VarBinder _ ident) = showIdent ident
 prettyPrintBinderAtom (ConstructorBinder _ ctor []) = runProperName (disqualify ctor)
 prettyPrintBinderAtom b@ConstructorBinder{} = parensT (prettyPrintBinder b)
+prettyPrintBinderAtom b@VariantBinder{} = parensT (prettyPrintBinder b)
 prettyPrintBinderAtom (NamedBinder _ ident binder) = showIdent ident Monoid.<> "@" Monoid.<> prettyPrintBinder binder
 prettyPrintBinderAtom (PositionedBinder _ _ binder) = prettyPrintBinderAtom binder
 prettyPrintBinderAtom (TypedBinder _ binder) = prettyPrintBinderAtom binder
@@ -225,6 +228,7 @@ prettyPrintLiteralBinder (ArrayLiteral bs) =
 prettyPrintBinder :: Binder -> Text
 prettyPrintBinder (ConstructorBinder _ ctor []) = runProperName (disqualify ctor)
 prettyPrintBinder (ConstructorBinder _ ctor args) = runProperName (disqualify ctor) Monoid.<> " " Monoid.<> T.unwords (map prettyPrintBinderAtom args)
+prettyPrintBinder (VariantBinder _ labels b) = foldMap (("." Monoid.<>) . prettyPrintObjectKey) labels Monoid.<> " " Monoid.<> prettyPrintBinderAtom b
 prettyPrintBinder (PositionedBinder _ _ binder) = prettyPrintBinder binder
 prettyPrintBinder (TypedBinder _ binder) = prettyPrintBinder binder
 prettyPrintBinder b = prettyPrintBinderAtom b

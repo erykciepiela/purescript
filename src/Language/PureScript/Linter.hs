@@ -236,6 +236,7 @@ lintUnused (Module modSS _ mn modDecls exports) =
     go (Literal _ _) = mempty
     go (Op _ _) = mempty
     go (Constructor _ _) = mempty
+    go (VariantInjector _ _) = mempty
     go (TypeClassDictionary _ _ _) = mempty
     go (DeferredDictionary _ _) = mempty
     go (DerivedInstancePlaceholder _ _) = mempty

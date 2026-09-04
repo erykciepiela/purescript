@@ -70,6 +70,7 @@ flattenBinder = \case
   BinderVar _ a -> flattenName a
   BinderNamed _ a b c -> flattenName a <> pure b <> flattenBinder c
   BinderConstructor _ a b -> flattenQualifiedName a <> foldMap flattenBinder b
+  BinderVariant _ a b c -> pure a <> flattenSeparated flattenLabel b <> flattenBinder c
   BinderBoolean _ a _ -> pure a
   BinderChar _ a _ -> pure a
   BinderString _ a _ -> pure a
@@ -135,6 +136,7 @@ flattenExpr = \case
   ExprSection _ a -> pure a
   ExprIdent _ a -> flattenQualifiedName a
   ExprConstructor _ a -> flattenQualifiedName a
+  ExprVariantInjector _ a b -> pure a <> flattenSeparated flattenLabel b
   ExprBoolean _ a _ -> pure a
   ExprChar _ a _ -> pure a
   ExprString _ a _ -> pure a
@@ -297,6 +299,7 @@ flattenType = \case
   TypeInt _ a b _ -> maybe mempty pure a <> pure b
   TypeRow _ a -> flattenWrapped flattenRow a
   TypeRecord _ a -> flattenWrapped flattenRow a
+  TypeVariant _ a -> flattenWrapped flattenRow a
   TypeForall _ a b c d -> pure a <> foldMap flattenTypeVarBinding b <> pure c <> flattenType d
   TypeKinded _ a b c -> flattenType a <> pure b <> flattenType c
   TypeApp _ a b -> flattenType a <> flattenType b
