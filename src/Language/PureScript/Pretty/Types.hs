@@ -103,6 +103,9 @@ convertPrettyPrintType = go
   goTypeApp d o ty@RCons{}
     | eqType o tyRecord = uncurry PPRecord (goRow d ty)
     | eqType o tyVariant = uncurry PPVariant (goRow d ty)
+  goTypeApp _ o REmpty{}
+    | eqType o tyRecord = PPRecord [] Nothing
+    | eqType o tyVariant = PPVariant [] Nothing
   goTypeApp d a b = PPTypeApp (go (d-1) a) (go (d-1) b)
 
 -- TODO(Christoph): get rid of T.unpack s
