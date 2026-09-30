@@ -1,5 +1,6 @@
 -- @shouldFailWith HoleInferredType
 -- @shouldFailWith HoleInferredType
+-- @shouldFailWith HoleSummary
 module Main where
 
 data F = X | Y

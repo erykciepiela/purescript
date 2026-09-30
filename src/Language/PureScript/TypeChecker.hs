@@ -600,7 +600,7 @@ typeCheckModule _ (Module _ _ _ _ Nothing) =
 typeCheckModule modulesExports (Module ss coms mn decls (Just exps)) =
   warnAndRethrow (addHint (ErrorInModule mn)) $ do
     let (decls', imports) = partitionEithers $ fromImportDecl <$> decls
-    modify (\s -> s { checkCurrentModule = Just mn, checkCurrentModuleImports = imports })
+    modify (\s -> s { checkCurrentModule = Just mn, checkCurrentModuleImports = imports, checkValuesInScope = Just (valuesInScope imports), checkConstructorsInScope = Just (constructorsInScope imports) })
     decls'' <- typeCheckAll mn $ ignoreWildcardsUnderCompleteTypeSignatures <$> decls'
     checkSuperClassesAreExported <- getSuperClassExportCheck
     for_ exps $ \e -> do
@@ -611,6 +611,36 @@ typeCheckModule modulesExports (Module ss coms mn decls (Just exps)) =
       checkDataConstructorsAreExported e
     return $ Module ss coms mn (map toImportDecl imports ++ decls'') (Just exps)
   where
+  valuesInScope :: [(SourceAnn, ModuleName, ImportDeclarationType, Maybe ModuleName, a)] -> S.Set (Qualified Ident)
+  valuesInScope imports = S.fromList
+    [ Qualified (ByModuleName (exportSourceDefinedIn src)) ident
+    | (_, importedModule, importType, _, _) <- imports
+    , exports <- toList (M.lookup importedModule modulesExports)
+    , (ident, src) <- M.toList (exportedValues exports)
+    , imported importType ident
+    ]
+    where
+    imported Implicit _ = True
+    imported (Explicit refs) ident = ident `elem` valueRefs refs
+    imported (Hiding refs) ident = ident `notElem` valueRefs refs
+    valueRefs refs = [ ident | ValueRef _ ident <- refs ]
+
+  constructorsInScope
+    :: [(SourceAnn, ModuleName, ImportDeclarationType, Maybe ModuleName, M.Map (ProperName 'TypeName) ([ProperName 'ConstructorName], ExportSource))]
+    -> S.Set (Qualified (ProperName 'ConstructorName))
+  constructorsInScope imports = S.fromList
+    [ Qualified (ByModuleName (exportSourceDefinedIn src)) ctor
+    | (_, _, importType, _, exportedTypes) <- imports
+    , (typeName, (ctors, src)) <- M.toList exportedTypes
+    , ctor <- ctors
+    , imported importType typeName ctor
+    ]
+    where
+    imported Implicit _ _ = True
+    imported (Explicit refs) typeName ctor = any (refersTo typeName ctor) refs
+    imported (Hiding refs) typeName ctor = not (any (refersTo typeName ctor) refs)
+    refersTo typeName ctor (TypeRef _ refName refCtors) = refName == typeName && maybe True (ctor `elem`) refCtors
+    refersTo _ _ _ = False
 
   fromImportDecl
     :: Declaration

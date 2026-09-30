@@ -1,0 +1,20 @@
+Error found:
+in module [33mMain[0m
+at tests/purs/failing/TypedHoleScope.purs:16:8 - 16:13 (line 16, column 8 - line 16, column 13)
+
+  Hole '[33mstep[0m' has the inferred type
+  [33m            [0m
+  [33m  Int -> Int[0m
+  [33m            [0m
+  You could substitute the hole with one of these values:
+  [33m                                                 [0m
+  [33m  Data.Ring.negate  :: forall a. Ring a => a -> a[0m
+  [33m  Main.double       :: Int -> Int                [0m
+  [33m  Main.step         :: Int -> Int                [0m
+  [33m                                                 [0m
+
+in value declaration [33mstep[0m
+
+See https://github.com/purescript/documentation/blob/master/errors/HoleInferredType.md for more information,
+or to contribute content related to this error.
+

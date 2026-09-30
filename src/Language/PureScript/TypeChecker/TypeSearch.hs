@@ -6,6 +6,7 @@ import Protolude
 
 import Control.Monad.Writer (WriterT, runWriterT)
 import Data.Map qualified as Map
+import Data.Set qualified as Set
 import Language.PureScript.TypeChecker.Entailment qualified as Entailment
 
 import Language.PureScript.TypeChecker.Monad qualified as TC
@@ -120,8 +121,16 @@ typeSearch unsolved env st type' =
     runTypeSearch :: Map k P.SourceType -> Map k P.SourceType
     runTypeSearch = Map.mapMaybe (\ty -> checkSubsume unsolved env st type' ty $> ty)
 
-    matchingNames = runTypeSearch (Map.map (\(ty, _, _) -> ty) (P.names env))
-    matchingConstructors = runTypeSearch (Map.map (\(_, _, ty, _) -> ty) (P.dataConstructors env))
+    matchingNames = runTypeSearch (Map.mapMaybeWithKey candidate (P.names env))
+    candidate name (ty, _, _) = guard (importedOrOwn (TC.checkValuesInScope st) name && not (fitsAnything ty)) $> ty
+
+    matchingConstructors = runTypeSearch (Map.mapMaybeWithKey constructor (P.dataConstructors env))
+    constructor name (_, _, ty, _) = guard (importedOrOwn (TC.checkConstructorsInScope st) name) $> ty
+
+    importedOrOwn :: Ord a => Maybe (Set.Set (P.Qualified a)) -> P.Qualified a -> Bool
+    importedOrOwn scope name@(P.Qualified (P.ByModuleName m) _) =
+      Just m == TC.checkCurrentModule st || maybe True (Set.member name) scope
+    importedOrOwn _ _ = True
     (allLabels, matchingLabels) = accessorSearch unsolved env st type'
 
     runPlainIdent (Qualified m (Ident k), v) = Just (Qualified m k, v)
@@ -131,3 +140,15 @@ typeSearch unsolved env st type' =
       <> mapMaybe runPlainIdent (Map.toList matchingNames)
       <> (first (map P.runProperName) <$> Map.toList matchingConstructors)
     , if null allLabels then Nothing else Just allLabels)
+
+-- | A value of type @forall a. a@ fits every hole, and one of type
+-- @forall a b. a -> b@ every function hole, so suggesting either says nothing
+-- about the hole.
+fitsAnything :: P.SourceType -> Bool
+fitsAnything = go . stripForAll
+  where
+  stripForAll (P.ForAll _ _ _ _ ty _) = stripForAll ty
+  stripForAll ty = ty
+  go (P.TypeVar _ _) = True
+  go (P.TypeApp _ (P.TypeApp _ f (P.TypeVar _ a)) (P.TypeVar _ b)) = P.eqType f P.tyFunction && a /= b
+  go _ = False

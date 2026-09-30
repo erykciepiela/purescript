@@ -151,6 +151,7 @@ data SimpleErrorMessage
   | UnusedDeclaration Ident
   | WildcardInferredType SourceType Context
   | HoleInferredType Text SourceType Context (Maybe TypeSearch)
+  | HoleSummary [(Text, SourceType)]
   | MissingTypeDeclaration Ident SourceType
   | MissingKindDeclaration KindSignatureFor (ProperName 'TypeName) SourceType
   | OverlappingPattern [[Binder]] Bool
@@ -326,6 +327,7 @@ errorCode em = case unwrapErrorMessage em of
   UnusedTypeVar{} -> "UnusedTypeVar"
   WildcardInferredType{} -> "WildcardInferredType"
   HoleInferredType{} -> "HoleInferredType"
+  HoleSummary{} -> "HoleSummary"
   MissingTypeDeclaration{} -> "MissingTypeDeclaration"
   MissingKindDeclaration{} -> "MissingKindDeclaration"
   OverlappingPattern{} -> "OverlappingPattern"
@@ -486,6 +488,7 @@ onTypesInErrorMessageM f (ErrorMessage hints simple) = ErrorMessage <$> traverse
   gSimple (OrphanInstance nm cl noms ts) = OrphanInstance nm cl noms <$> traverse f ts
   gSimple (WildcardInferredType ty ctx) = WildcardInferredType <$> f ty <*> traverse (sndM f) ctx
   gSimple (HoleInferredType name ty ctx env) = HoleInferredType name <$> f ty <*> traverse (sndM f) ctx  <*> traverse (onTypeSearchTypesM f) env
+  gSimple (HoleSummary holes) = HoleSummary <$> traverse (sndM f) holes
   gSimple (MissingTypeDeclaration nm ty) = MissingTypeDeclaration nm <$> f ty
   gSimple (MissingKindDeclaration sig nm ty) = MissingKindDeclaration sig nm <$> f ty
   gSimple (CannotGeneralizeRecursiveFunction nm ty) = CannotGeneralizeRecursiveFunction nm <$> f ty
@@ -503,7 +506,11 @@ onTypesInErrorMessageM f (ErrorMessage hints simple) = ErrorMessage <$> traverse
   gHint other = pure other
 
 errorDocUri :: ErrorMessage -> Text
-errorDocUri e = "https://github.com/purescript/documentation/blob/master/errors/" <> errorCode e <> ".md"
+errorDocUri e = "https://github.com/purescript/documentation/blob/master/errors/" <> docPage <> ".md"
+  where
+  docPage = case unwrapErrorMessage e of
+    HoleSummary{} -> "HoleInferredType"
+    _ -> errorCode e
 
 -- TODO Other possible suggestions:
 -- WildcardInferredType - source span not small enough
@@ -1165,6 +1172,17 @@ prettyPrintSingleError (PPEOptions codeColor full level showDocs relPath fileCon
         paras $ [ line $ "Hole '" <> markCode name <> "' has the inferred type "
                 , markCodeBox (indent (prettyTypeWithDepth maxBound ty))
                 ] ++ tsResult ++ renderContext ctx
+    renderSimpleErrorMessage (HoleSummary holes) =
+      let
+        (names, types) = unzip holes
+        nameBoxes = Box.text . T.unpack <$> names
+        longestName = maximum (map Box.cols nameBoxes)
+        typeBoxes = (\t -> BoxHelpers.indented (Box.text ":: " Box.<> prettyTypeWithDepth maxBound t)) <$> types
+      in
+        paras [ line $ "The " <> T.pack (show (length holes)) <> " holes in this declaration, with one numbering of unknowns across them:"
+              , markCodeBox $ indent $ Box.vcat Box.top $
+                  zipWith (Box.<>) (Box.alignHoriz Box.left longestName <$> nameBoxes) typeBoxes
+              ]
     renderSimpleErrorMessage (MissingTypeDeclaration ident ty) =
       paras [ line $ "No type declaration was provided for the top-level declaration of " <> markCode (showIdent ident) <> "."
             , line "It is good practice to provide type declarations as a form of documentation."

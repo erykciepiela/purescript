@@ -1,7 +1,7 @@
-Error 1 of 2:
+Error 1 of 3:
 
   in module [33mMain[0m
-  at tests/purs/failing/TypedHole4.purs:8:9 - 8:14 (line 8, column 9 - line 8, column 14)
+  at tests/purs/failing/TypedHole4.purs:9:9 - 9:14 (line 9, column 9 - line 9, column 14)
 
     Hole '[33mhelp[0m' has the inferred type
     [33m    [0m
@@ -24,10 +24,10 @@ Error 1 of 2:
   See https://github.com/purescript/documentation/blob/master/errors/HoleInferredType.md for more information,
   or to contribute content related to this error.
 
-Error 2 of 2:
+Error 2 of 3:
 
   in module [33mMain[0m
-  at tests/purs/failing/TypedHole4.purs:9:9 - 9:14 (line 9, column 9 - line 9, column 14)
+  at tests/purs/failing/TypedHole4.purs:10:9 - 10:14 (line 10, column 9 - line 10, column 14)
 
     Hole '[33mhelp[0m' has the inferred type
     [33m    [0m
@@ -41,6 +41,25 @@ Error 2 of 2:
 
       b :: [33ma0[0m
 
+
+  in value declaration [33mf[0m
+
+  where [33ma0[0m is a rigid type variable
+          bound at (line 0, column 0 - line 0, column 0)
+
+  See https://github.com/purescript/documentation/blob/master/errors/HoleInferredType.md for more information,
+  or to contribute content related to this error.
+
+Error 3 of 3:
+
+  in module [33mMain[0m
+  at tests/purs/failing/TypedHole4.purs:8:1 - 8:2 (line 8, column 1 - line 8, column 2)
+
+    The 2 holes in this declaration, with one numbering of unknowns across them:
+    [33m             [0m
+    [33m  help  :: a0[0m
+    [33m  help  :: a0[0m
+    [33m             [0m
 
   in value declaration [33mf[0m
 

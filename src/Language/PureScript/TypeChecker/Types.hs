@@ -39,6 +39,7 @@ import Data.Functor (($>))
 import Data.List (transpose, (\\), partition, delete)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Traversable (for)
 import Data.List.NonEmpty qualified as NEL
 import Data.Map qualified as M
@@ -48,8 +49,8 @@ import Data.IntSet qualified as IS
 import Language.PureScript.AST
 import Language.PureScript.Crash (internalError)
 import Language.PureScript.Environment
-import Language.PureScript.Errors (ErrorMessage(..), MultipleErrors(..), SimpleErrorMessage(..), errorMessage, errorMessage', escalateWarningWhen, internalCompilerError, onErrorMessages, onTypesInErrorMessage, parU)
-import Language.PureScript.Names (pattern ByNullSourcePos, Ident(..), ModuleName, Name(..), ProperName(..), ProperNameType(..), Qualified(..), QualifiedBy(..), byMaybeModuleName, coerceProperName, freshIdent)
+import Language.PureScript.Errors (ErrorMessage(..), MultipleErrors(..), SimpleErrorMessage(..), addHint, errorMessage, errorMessage', escalateWarningWhen, internalCompilerError, onErrorMessages, onTypesInErrorMessage, parU)
+import Language.PureScript.Names (pattern ByNullSourcePos, Ident(..), ModuleName, Name(..), ProperName(..), ProperNameType(..), Qualified(..), QualifiedBy(..), byMaybeModuleName, coerceProperName, freshIdent, showIdent)
 import Language.PureScript.TypeChecker.Deriving (deriveInstance)
 import Language.PureScript.TypeChecker.Entailment (InstanceContext, newDictionaries, replaceTypeClassDictionaries)
 import Language.PureScript.TypeChecker.Kinds (checkConstraint, checkKind, checkTypeKind, kindOf, kindOfWithScopedVars, unifyKinds', unknownsWithKinds)
@@ -119,8 +120,8 @@ typesOf bindingGroupType moduleName vals = withFreshSubstitution $ do
                 filter isHoleError
                   . runMultipleErrors
                   . onErrorMessages (attachPending . runTypeSearch Nothing errState . replaceTypes errSubst)
-                  $ wInfer <> foldMap (snd . snd) tys
-          throwError $ err <> MultipleErrors holeErrors
+              declHoles (_, ((decl, _), w)) = let hs = holeErrors w in hs <> holeSummary decl hs
+          throwError $ err <> MultipleErrors (holeErrors wInfer <> foldMap declHoles tys)
 
     inferred <- flip catchError flushHolesOnError $ forM tys $ \(shouldGeneralize, ((sai@((ss, _), ident), (val, ty)), _)) -> do
       -- Replace type class dictionary placeholders with actual dictionaries
@@ -208,11 +209,12 @@ typesOf bindingGroupType moduleName vals = withFreshSubstitution $ do
     finalState <- get
     let replaceTypes' = replaceTypes (checkSubstitution finalState)
         runTypeSearch' gen = runTypeSearch (guard gen $> foldMap snd inferred) finalState
-        raisePreviousWarnings gen = escalateWarningWhen isHoleError . tell . onErrorMessages (runTypeSearch' gen . replaceTypes')
+        raisePreviousWarnings gen decl = escalateWarningWhen isHoleError . tell . withHoleSummary decl . onErrorMessages (runTypeSearch' gen . replaceTypes')
+        withHoleSummary decl (MultipleErrors ws) = MultipleErrors (ws <> foldMap (`holeSummary` ws) decl)
 
-    raisePreviousWarnings False wInfer
-    forM_ tys $ \(shouldGeneralize, ((_, (_, _)), w)) ->
-      raisePreviousWarnings shouldGeneralize w
+    raisePreviousWarnings False Nothing wInfer
+    forM_ tys $ \(shouldGeneralize, ((decl, (_, _)), w)) ->
+      raisePreviousWarnings shouldGeneralize (Just decl) w
 
     return (map fst inferred)
   where
@@ -248,7 +250,23 @@ typesOf bindingGroupType moduleName vals = withFreshSubstitution $ do
 
     isHoleError :: ErrorMessage -> Bool
     isHoleError (ErrorMessage _ HoleInferredType{}) = True
+    isHoleError (ErrorMessage _ HoleSummary{}) = True
     isHoleError _ = False
+
+    -- Every message is pretty-printed with its own numbering of unknowns, so
+    -- two holes sharing an unknown cannot be seen to share it. A declaration
+    -- with several holes therefore also gets one message listing them all,
+    -- placed on the declaration's name.
+    holeSummary :: (SourceAnn, Ident) -> [ErrorMessage] -> [ErrorMessage]
+    holeSummary ((ss, _), ident) ws =
+      case [ (name, ty) | ErrorMessage _ (HoleInferredType name ty _ _) <- ws ] of
+        holes@(_ : _ : _) ->
+          runMultipleErrors . addHint (ErrorInValueDeclaration ident) . errorMessage' (nameSpan ss ident) $ HoleSummary holes
+        _ -> []
+
+    nameSpan ss ident =
+      let start = spanStart ss
+      in ss { spanEnd = start { sourcePosColumn = sourcePosColumn start + T.length (showIdent ident) } }
 
 -- | A binding group contains multiple value definitions, some of which are typed
 -- and some which are not.

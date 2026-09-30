@@ -7,15 +7,13 @@ at tests/purs/failing/4408Cyclic.purs:23:29 - 23:34 (line 23, column 29 - line 2
   [33m  Int -> K[0m
   [33m          [0m
   You could substitute the hole with one of these values:
-  [33m                                                                    [0m
-  [33m  Main.aSaki                  :: Int -> K                           [0m
-  [33m  Main.bNoa                   :: forall a. a -> K                   [0m
-  [33m  Main.cTowa                  :: forall a. a -> K                   [0m
-  [33m  Main.eSaki                  :: Int -> K                           [0m
-  [33m  Safe.Coerce.coerce          :: forall a b. Coercible a b => a -> b[0m
-  [33m  Unsafe.Coerce.unsafeCoerce  :: forall a b. a -> b                 [0m
-  [33m  Main.K                      :: Int -> K                           [0m
-  [33m                                                                    [0m
+  [33m                                 [0m
+  [33m  Main.aSaki  :: Int -> K        [0m
+  [33m  Main.bNoa   :: forall a. a -> K[0m
+  [33m  Main.cTowa  :: forall a. a -> K[0m
+  [33m  Main.eSaki  :: Int -> K        [0m
+  [33m  Main.K      :: Int -> K        [0m
+  [33m                                 [0m
   in the following context:
 
     a :: [33ma0[0m

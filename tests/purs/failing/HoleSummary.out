@@ -1,0 +1,72 @@
+Error 1 of 4:
+
+  in module [33mMain[0m
+  at tests/purs/failing/HoleSummary.purs:12:9 - 12:17 (line 12, column 9 - line 12, column 17)
+
+    Hole '[33mcombine[0m' has the inferred type
+    [33m                 [0m
+    [33m  t0 -> t1 -> Int[0m
+    [33m                 [0m
+
+  in value declaration [33mtotal[0m
+
+  where [33mt0[0m is an unknown type
+        [33mt1[0m is an unknown type
+
+  See https://github.com/purescript/documentation/blob/master/errors/HoleInferredType.md for more information,
+  or to contribute content related to this error.
+
+Error 2 of 4:
+
+  in module [33mMain[0m
+  at tests/purs/failing/HoleSummary.purs:12:19 - 12:24 (line 12, column 19 - line 12, column 24)
+
+    Hole '[33mload[0m' has the inferred type
+    [33m           [0m
+    [33m  Int -> t0[0m
+    [33m           [0m
+
+  in value declaration [33mtotal[0m
+
+  where [33mt0[0m is an unknown type
+
+  See https://github.com/purescript/documentation/blob/master/errors/HoleInferredType.md for more information,
+  or to contribute content related to this error.
+
+Error 3 of 4:
+
+  in module [33mMain[0m
+  at tests/purs/failing/HoleSummary.purs:12:29 - 12:35 (line 12, column 29 - line 12, column 35)
+
+    Hole '[33mparse[0m' has the inferred type
+    [33m              [0m
+    [33m  String -> t0[0m
+    [33m              [0m
+
+  in value declaration [33mtotal[0m
+
+  where [33mt0[0m is an unknown type
+
+  See https://github.com/purescript/documentation/blob/master/errors/HoleInferredType.md for more information,
+  or to contribute content related to this error.
+
+Error 4 of 4:
+
+  in module [33mMain[0m
+  at tests/purs/failing/HoleSummary.purs:11:1 - 11:6 (line 11, column 1 - line 11, column 6)
+
+    The 3 holes in this declaration, with one numbering of unknowns across them:
+    [33m                             [0m
+    [33m  combine  :: t0 -> t1 -> Int[0m
+    [33m  load     :: Int -> t0      [0m
+    [33m  parse    :: String -> t1   [0m
+    [33m                             [0m
+
+  in value declaration [33mtotal[0m
+
+  where [33mt0[0m is an unknown type
+        [33mt1[0m is an unknown type
+
+  See https://github.com/purescript/documentation/blob/master/errors/HoleInferredType.md for more information,
+  or to contribute content related to this error.
+
